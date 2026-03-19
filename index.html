@@ -12,9 +12,7 @@ body {
     background: #f5f5f5;
 }
 
-h1 {
-    font-size: 24px;
-}
+h1 { font-size: 24px; }
 
 input {
     font-size: 24px;
@@ -47,8 +45,8 @@ button {
     font-size: 18px;
 }
 </style>
-
 </head>
+
 <body>
 
 <h1>📦 Control SKU RF</h1>
@@ -74,24 +72,47 @@ let sku1 = document.getElementById("sku1");
 let sku2 = document.getElementById("sku2");
 let estado = document.getElementById("estado");
 
-// 👉 mover foco a SKU2
 
+// 🔊 beep error (compatible RF)
+function beepError() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+        console.log("Audio no disponible");
+    }
+}
+
+
+// 👉 SKU1 → pasa automáticamente a SKU2
 sku1.addEventListener("input", function() {
     if (sku1.value.length > 0) {
         setTimeout(() => {
             sku2.focus();
-        }, 50);
+        }, 80);
     }
 });
 
 
-// 👉 procesar automáticamente
-
+// 👉 SKU2 → procesa automático
 sku2.addEventListener("input", function() {
     if (sku2.value.length > 0) {
         setTimeout(() => {
             procesar();
-        }, 50);
+        }, 80);
     }
 });
 
@@ -110,12 +131,13 @@ function procesar() {
         estado.textContent = "❌ ERROR";
         estado.style.color = "red";
         document.body.classList.add("error-bg");
+
+        beepError(); // 🔊 sonido
     }
 
     document.getElementById("okCount").textContent = ok;
     document.getElementById("errorCount").textContent = error;
 
-    // limpiar pantalla rápido
     setTimeout(function() {
         document.body.classList.remove("ok-bg", "error-bg");
     }, 250);
@@ -125,7 +147,8 @@ function procesar() {
     sku1.focus();
 }
 
-// 👉 guardar corte por mesa
+
+// 👉 LAP por mesa
 function lap() {
 
     laps.push({
@@ -143,7 +166,8 @@ function lap() {
     sku1.focus();
 }
 
-// 👉 guardar archivo en RF
+
+// 👉 Guardar CSV en RF
 function finalizar() {
 
     let contenido = "Mesa,OK,ERROR,Fecha\n";
@@ -161,7 +185,6 @@ function finalizar() {
     let a = document.createElement("a");
     a.href = url;
 
-    // 👉 nombre único con fecha
     let fecha = new Date().toISOString().replace(/[:.]/g, "-");
     a.download = "sku_control_" + fecha + ".csv";
 
@@ -170,7 +193,7 @@ function finalizar() {
     estado.textContent = "📁 Archivo guardado";
     estado.style.color = "blue";
 
-    // opcional: reset general
+    // reset
     ok = 0;
     error = 0;
     laps = [];
@@ -180,6 +203,12 @@ function finalizar() {
 
     sku1.focus();
 }
+
+
+// 🔓 desbloquear audio (por si RF lo bloquea)
+document.body.addEventListener("click", () => {
+    beepError();
+}, { once: true });
 
 </script>
 
