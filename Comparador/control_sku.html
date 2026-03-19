@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control SKU RF</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    margin-top: 20px;
+    background: #f5f5f5;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+input {
+    font-size: 24px;
+    padding: 15px;
+    margin: 10px;
+    width: 280px;
+    text-align: center;
+}
+
+.contador {
+    font-size: 22px;
+    margin: 5px;
+}
+
+.ok { color: green; }
+.error { color: red; }
+
+#estado {
+    font-size: 26px;
+    margin-top: 15px;
+    height: 40px;
+}
+
+.ok-bg { background-color: #d4edda; }
+.error-bg { background-color: #f8d7da; }
+
+button {
+    padding: 14px 22px;
+    margin: 10px;
+    font-size: 18px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>📦 Control SKU RF</h1>
+
+<input id="sku1" placeholder="Scan SKU 1" autofocus>
+<input id="sku2" placeholder="Scan SKU 2">
+
+<div class="contador ok">✔ OK: <span id="okCount">0</span></div>
+<div class="contador error">❌ ERROR: <span id="errorCount">0</span></div>
+
+<div id="estado"></div>
+
+<button onclick="lap()">📍 LAP</button>
+<button onclick="finalizar()">🏁 FINALIZAR</button>
+
+<script>
+
+let ok = 0;
+let error = 0;
+let laps = [];
+
+let sku1 = document.getElementById("sku1");
+let sku2 = document.getElementById("sku2");
+let estado = document.getElementById("estado");
+
+// 👉 mover foco a SKU2
+sku1.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sku2.focus();
+    }
+});
+
+// 👉 procesar automáticamente
+sku2.addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        procesar();
+    }
+});
+
+function procesar() {
+
+    document.body.classList.remove("ok-bg", "error-bg");
+
+    if (sku1.value === sku2.value) {
+        ok++;
+        estado.textContent = "✔ OK";
+        estado.style.color = "green";
+        document.body.classList.add("ok-bg");
+    } else {
+        error++;
+        estado.textContent = "❌ ERROR";
+        estado.style.color = "red";
+        document.body.classList.add("error-bg");
+    }
+
+    document.getElementById("okCount").textContent = ok;
+    document.getElementById("errorCount").textContent = error;
+
+    // limpiar pantalla rápido
+    setTimeout(function() {
+        document.body.classList.remove("ok-bg", "error-bg");
+    }, 250);
+
+    sku1.value = "";
+    sku2.value = "";
+    sku1.focus();
+}
+
+// 👉 guardar corte por mesa
+function lap() {
+
+    laps.push({
+        mesa: laps.length + 1,
+        ok: ok,
+        error: error,
+        fecha: new Date().toLocaleString()
+    });
+
+    estado.textContent = "📍 LAP " + laps.length;
+    estado.style.color = "blue";
+
+    sku1.value = "";
+    sku2.value = "";
+    sku1.focus();
+}
+
+// 👉 guardar archivo en RF
+function finalizar() {
+
+    let contenido = "Mesa,OK,ERROR,Fecha\n";
+
+    for (let i = 0; i < laps.length; i++) {
+        let l = laps[i];
+        contenido += l.mesa + "," + l.ok + "," + l.error + "," + l.fecha + "\n";
+    }
+
+    contenido += "TOTAL," + ok + "," + error + ",-\n";
+
+    let blob = new Blob([contenido], { type: "text/csv" });
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+
+    // 👉 nombre único con fecha
+    let fecha = new Date().toISOString().replace(/[:.]/g, "-");
+    a.download = "sku_control_" + fecha + ".csv";
+
+    a.click();
+
+    estado.textContent = "📁 Archivo guardado";
+    estado.style.color = "blue";
+
+    // opcional: reset general
+    ok = 0;
+    error = 0;
+    laps = [];
+
+    document.getElementById("okCount").textContent = 0;
+    document.getElementById("errorCount").textContent = 0;
+
+    sku1.focus();
+}
+
+</script>
+
+</body>
+</html>
