@@ -75,20 +75,26 @@ let sku2 = document.getElementById("sku2");
 let estado = document.getElementById("estado");
 
 // 👉 mover foco a SKU2
-sku1.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        sku2.focus();
+
+sku1.addEventListener("input", function() {
+    if (sku1.value.length > 0) {
+        setTimeout(() => {
+            sku2.focus();
+        }, 50);
     }
 });
 
+
 // 👉 procesar automáticamente
-sku2.addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        procesar();
+
+sku2.addEventListener("input", function() {
+    if (sku2.value.length > 0) {
+        setTimeout(() => {
+            procesar();
+        }, 50);
     }
 });
+
 
 function procesar() {
 
