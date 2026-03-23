@@ -2,62 +2,54 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Control SKU</title>
+<title>Control SKU RF</title>
 
 <style>
-    body {
-        font-family: Arial;
-        text-align: center;
-        margin-top: 40px;
-        background: #f5f5f5;
-    }
+body {
+    font-family: Arial;
+    text-align: center;
+    margin-top: 20px;
+    background: #f5f5f5;
+}
 
-    h1 {
-        margin-bottom: 20px;
-    }
+h1 { font-size: 24px; }
 
-    input {
-        font-size: 22px;
-        padding: 12px;
-        margin: 10px;
-        width: 260px;
-        text-align: center;
-    }
+input {
+    font-size: 24px;
+    padding: 15px;
+    margin: 10px;
+    width: 280px;
+    text-align: center;
+}
 
-    .contador {
-        font-size: 22px;
-        margin: 10px;
-    }
+.contador {
+    font-size: 22px;
+    margin: 5px;
+}
 
-    .ok { color: green; }
-    .error { color: red; }
+.ok { color: green; }
+.error { color: red; }
 
-    #estado {
-        font-size: 28px;
-        margin-top: 20px;
-        height: 40px;
-    }
+#estado {
+    font-size: 26px;
+    margin-top: 15px;
+    height: 40px;
+}
 
-    .ok-bg {
-        background-color: #d4edda;
-    }
+.ok-bg { background-color: #d4edda; }
+.error-bg { background-color: #f8d7da; }
 
-    .error-bg {
-        background-color: #f8d7da;
-    }
-
-    button {
-        padding: 12px 20px;
-        margin: 10px;
-        font-size: 16px;
-        cursor: pointer;
-    }
+button {
+    padding: 14px 22px;
+    margin: 10px;
+    font-size: 18px;
+}
 </style>
-
 </head>
+
 <body>
 
-<h1>📦 Control de SKU</h1>
+<h1>📦 Control SKU RF</h1>
 
 <input id="sku1" placeholder="Scan SKU 1" autofocus>
 <input id="sku2" placeholder="Scan SKU 2">
@@ -67,7 +59,7 @@
 
 <div id="estado"></div>
 
-<button onclick="lap()">📍 LAP (Mesa)</button>
+<button onclick="lap()">📍 LAP</button>
 <button onclick="finalizar()">🏁 FINALIZAR</button>
 
 <script>
@@ -81,19 +73,46 @@ let sku2 = document.getElementById("sku2");
 let estado = document.getElementById("estado");
 
 
-// 👉 Mover automáticamente a SKU2
-sku1.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        sku2.focus();
+// 🔊 beep error (compatible RF)
+function beepError() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.4, ctx.currentTime);
+
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+        console.log("Audio no disponible");
+    }
+}
+
+
+// 👉 SKU1 → pasa automáticamente a SKU2
+sku1.addEventListener("input", function() {
+    if (sku1.value.length > 0) {
+        setTimeout(() => {
+            sku2.focus();
+        }, 80);
     }
 });
 
-// 👉 Procesar automáticamente al escanear SKU2
-sku2.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        procesar();
+
+// 👉 SKU2 → procesa automático
+sku2.addEventListener("input", function() {
+    if (sku2.value.length > 0) {
+        setTimeout(() => {
+            procesar();
+        }, 80);
     }
 });
 
@@ -112,14 +131,16 @@ function procesar() {
         estado.textContent = "❌ ERROR";
         estado.style.color = "red";
         document.body.classList.add("error-bg");
+
+        beepError(); // 🔊 sonido
     }
 
     document.getElementById("okCount").textContent = ok;
     document.getElementById("errorCount").textContent = error;
 
-    setTimeout(() => {
+    setTimeout(function() {
         document.body.classList.remove("ok-bg", "error-bg");
-    }, 300);
+    }, 250);
 
     sku1.value = "";
     sku2.value = "";
@@ -127,7 +148,7 @@ function procesar() {
 }
 
 
-// 👉 Guardar corte por mesa
+// 👉 LAP por mesa
 function lap() {
 
     laps.push({
@@ -137,30 +158,57 @@ function lap() {
         fecha: new Date().toLocaleString()
     });
 
-    estado.textContent = `📍 LAP guardado (Mesa ${laps.length})`;
+    estado.textContent = "📍 LAP " + laps.length;
     estado.style.color = "blue";
+
+    sku1.value = "";
+    sku2.value = "";
+    sku1.focus();
 }
 
 
-// 👉 Exportar resultados
+// 👉 Guardar CSV en RF
 function finalizar() {
 
     let contenido = "Mesa,OK,ERROR,Fecha\n";
 
-    laps.forEach(l => {
-        contenido += `${l.mesa},${l.ok},${l.error},${l.fecha}\n`;
-    });
+    for (let i = 0; i < laps.length; i++) {
+        let l = laps[i];
+        contenido += l.mesa + "," + l.ok + "," + l.error + "," + l.fecha + "\n";
+    }
 
-    contenido += `TOTAL,${ok},${error},-\n`;
+    contenido += "TOTAL," + ok + "," + error + ",-\n";
 
     let blob = new Blob([contenido], { type: "text/csv" });
     let url = URL.createObjectURL(blob);
 
     let a = document.createElement("a");
     a.href = url;
-    a.download = "resultado_sku.csv";
+
+    let fecha = new Date().toISOString().replace(/[:.]/g, "-");
+    a.download = "sku_control_" + fecha + ".csv";
+
     a.click();
+
+    estado.textContent = "📁 Archivo guardado";
+    estado.style.color = "blue";
+
+    // reset
+    ok = 0;
+    error = 0;
+    laps = [];
+
+    document.getElementById("okCount").textContent = 0;
+    document.getElementById("errorCount").textContent = 0;
+
+    sku1.focus();
 }
+
+
+// 🔓 desbloquear audio (por si RF lo bloquea)
+document.body.addEventListener("click", () => {
+    beepError();
+}, { once: true });
 
 </script>
 
