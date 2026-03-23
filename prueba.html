@@ -2,49 +2,62 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Control SKU RF</title>
+<title>Control SKU</title>
 
 <style>
-body {
-    font-family: Arial;
-    text-align: center;
-    margin-top: 20px;
-    background: #f5f5f5;
-}
+    body {
+        font-family: Arial;
+        text-align: center;
+        margin-top: 40px;
+        background: #f5f5f5;
+    }
 
-input {
-    font-size: 24px;
-    padding: 15px;
-    margin: 10px;
-    width: 280px;
-    text-align: center;
-}
+    h1 {
+        margin-bottom: 20px;
+    }
 
-.contador { font-size: 22px; }
-.ok { color: green; }
-.error { color: red; }
+    input {
+        font-size: 22px;
+        padding: 12px;
+        margin: 10px;
+        width: 260px;
+        text-align: center;
+    }
 
-#estado {
-    font-size: 26px;
-    margin-top: 15px;
-    height: 40px;
-}
+    .contador {
+        font-size: 22px;
+        margin: 10px;
+    }
 
-.ok-bg { background-color: #d4edda; }
-.error-bg { background-color: #f8d7da; }
-.repeat-bg { background-color: #fff3cd; }
+    .ok { color: green; }
+    .error { color: red; }
 
-button {
-    padding: 14px 22px;
-    margin: 10px;
-    font-size: 18px;
-}
+    #estado {
+        font-size: 28px;
+        margin-top: 20px;
+        height: 40px;
+    }
+
+    .ok-bg {
+        background-color: #d4edda;
+    }
+
+    .error-bg {
+        background-color: #f8d7da;
+    }
+
+    button {
+        padding: 12px 20px;
+        margin: 10px;
+        font-size: 16px;
+        cursor: pointer;
+    }
 </style>
-</head>
 
+</head>
 <body>
 
-<h1>📦 Control SKU RF</h1>
+<h1>📦 Control de SKU</h1>
 
 <input id="sku1" placeholder="Scan SKU 1" autofocus>
 <input id="sku2" placeholder="Scan SKU 2">
@@ -54,7 +67,7 @@ button {
 
 <div id="estado"></div>
 
-<button onclick="lap()">📍 CAMBIAR MESA</button>
+<button onclick="lap()">📍 LAP (Mesa)</button>
 <button onclick="finalizar()">🏁 FINALIZAR</button>
 
 <script>
@@ -63,151 +76,73 @@ let ok = 0;
 let error = 0;
 let laps = [];
 
-// 👉 control de repetidos
-let registros = new Set();
-
-// 👉 iniciar automáticamente en mesa 1
-let mesaActual = 1;
-laps.push({
-    mesa: 1,
-    ok: 0,
-    error: 0,
-    fecha: new Date().toLocaleString()
-});
-
 let sku1 = document.getElementById("sku1");
 let sku2 = document.getElementById("sku2");
 let estado = document.getElementById("estado");
 
 
-// 🔊 sonido error
-function beepError() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.type = "square";
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.2);
-}
-
-// 🔊 sonido repetido (distinto)
-function beepRepeat() {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(300, ctx.currentTime);
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
-}
-
-
-// 👉 flujo automático RF
-sku1.addEventListener("input", () => {
-    if (sku1.value.length > 0) {
-        setTimeout(() => sku2.focus(), 80);
+// 👉 Mover automáticamente a SKU2
+sku1.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sku2.focus();
     }
 });
 
-sku2.addEventListener("input", () => {
-    if (sku2.value.length > 0) {
-        setTimeout(() => procesar(), 80);
+// 👉 Procesar automáticamente al escanear SKU2
+sku2.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        procesar();
     }
 });
 
 
 function procesar() {
 
-    document.body.classList.remove("ok-bg", "error-bg", "repeat-bg");
-
-    let clave = sku1.value + "|" + sku2.value;
-
-    // 🔁 validar repetido
-    if (registros.has(clave)) {
-
-        estado.textContent = "⚠️ REPETIDO";
-        estado.style.color = "orange";
-        document.body.classList.add("repeat-bg");
-
-        beepRepeat();
-
-        limpiar();
-        return;
-    }
-
-    registros.add(clave);
-
-    let mesa = laps[mesaActual - 1];
+    document.body.classList.remove("ok-bg", "error-bg");
 
     if (sku1.value === sku2.value) {
         ok++;
-        mesa.ok++;
-
         estado.textContent = "✔ OK";
         estado.style.color = "green";
         document.body.classList.add("ok-bg");
-
     } else {
         error++;
-        mesa.error++;
-
         estado.textContent = "❌ ERROR";
         estado.style.color = "red";
         document.body.classList.add("error-bg");
-
-        beepError();
     }
 
     document.getElementById("okCount").textContent = ok;
     document.getElementById("errorCount").textContent = error;
 
     setTimeout(() => {
-        document.body.classList.remove("ok-bg", "error-bg", "repeat-bg");
-    }, 250);
+        document.body.classList.remove("ok-bg", "error-bg");
+    }, 300);
 
-    limpiar();
-}
-
-
-function limpiar() {
     sku1.value = "";
     sku2.value = "";
     sku1.focus();
 }
 
 
-// 👉 cambiar mesa
+// 👉 Guardar corte por mesa
 function lap() {
-    mesaActual++;
 
     laps.push({
-        mesa: mesaActual,
-        ok: 0,
-        error: 0,
+        mesa: laps.length + 1,
+        ok: ok,
+        error: error,
         fecha: new Date().toLocaleString()
     });
 
-    estado.textContent = "📍 Mesa " + mesaActual;
+    estado.textContent = `📍 LAP guardado (Mesa ${laps.length})`;
     estado.style.color = "blue";
-
-    limpiar();
 }
 
 
-// 👉 guardar CSV
+// 👉 Exportar resultados
 function finalizar() {
 
     let contenido = "Mesa,OK,ERROR,Fecha\n";
@@ -223,33 +158,8 @@ function finalizar() {
 
     let a = document.createElement("a");
     a.href = url;
-
-    let fecha = new Date().toISOString().replace(/[:.]/g, "-");
-    a.download = "sku_control_" + fecha + ".csv";
-
+    a.download = "resultado_sku.csv";
     a.click();
-
-    estado.textContent = "📁 Archivo guardado";
-    estado.style.color = "blue";
-
-    // reset total
-    ok = 0;
-    error = 0;
-    laps = [];
-    registros.clear();
-    mesaActual = 1;
-
-    laps.push({
-        mesa: 1,
-        ok: 0,
-        error: 0,
-        fecha: new Date().toLocaleString()
-    });
-
-    document.getElementById("okCount").textContent = 0;
-    document.getElementById("errorCount").textContent = 0;
-
-    sku1.focus();
 }
 
 </script>
